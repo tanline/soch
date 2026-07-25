@@ -255,6 +255,10 @@ func TestCreateNotesDirLinksToMasterNotes(t *testing.T) {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
+	if err := createNotesDir(cmd); err != nil {
+		t.Fatalf("second createNotesDir() returned an error: %v", err)
+	}
+
 	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
 	info, err := os.Lstat(linkPath)
 	if err != nil {
@@ -286,6 +290,10 @@ func TestCreateNotesDirLinksToMasterNotes(t *testing.T) {
 
 	if !strings.Contains(output.String(), "Linked notes directory to master notes") {
 		t.Error("output did not report linking notes directory to master notes")
+	}
+
+	if strings.Count(output.String(), "Linked notes directory to master notes") != 1 {
+		t.Error("output reported linking the same notes directory more than once")
 	}
 }
 

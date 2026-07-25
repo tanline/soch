@@ -47,15 +47,18 @@ func createNotesDir(cmd *cobra.Command) error {
 		}
 	}
 
-	if err := linkNotesDir(notesDirName); err != nil {
+	linked, err := linkNotesDir(notesDirName)
+	if err != nil {
 		return fmt.Errorf("linking notes directory: %w", err)
 	}
 
-	if _, err := fmt.Fprintln(cmd.OutOrStdout(), "Linked notes directory to master notes"); err != nil {
-		return err
+	if linked {
+		if _, err := fmt.Fprintln(cmd.OutOrStdout(), "Linked notes directory to master notes"); err != nil {
+			return err
+		}
 	}
 
-	_, err := fmt.Fprintln(cmd.OutOrStdout(), "Notes directory is ready")
+	_, err = fmt.Fprintln(cmd.OutOrStdout(), "Notes directory is ready")
 	return err
 }
 
@@ -63,29 +66,64 @@ func createLocalNotesDir(notesDirName string) error {
 	return os.MkdirAll(notesDirName, 0755)
 }
 
-func linkNotesDir(notesDirName string) error {
+func linkNotesDir(notesDirName string) (bool, error) {
 	masterNotesDir := strings.TrimSpace(viper.GetString(masterNotesDirKey))
 	if masterNotesDir == "" {
-		return fmt.Errorf("master notes directory is not configured")
+		return false, fmt.Errorf("master notes directory is not configured")
 	}
 
 	info, err := os.Stat(masterNotesDir)
 	if err != nil {
-		return fmt.Errorf("accessing master notes directory %q: %w", masterNotesDir, err)
+		return false, fmt.Errorf("accessing master notes directory %q: %w", masterNotesDir, err)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("master notes path %q is not a directory", masterNotesDir)
+		return false, fmt.Errorf("master notes path %q is not a directory", masterNotesDir)
 	}
 
 	workspaceDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("getting current workspace: %w", err)
+		return false, fmt.Errorf("getting current workspace: %w", err)
 	}
 
 	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
 	notesPath := filepath.Join(workspaceDir, notesDirName)
 
-	return os.Symlink(notesPath, linkPath)
+	linkInfo, err := os.Lstat(linkPath)
+	if err == nil {
+		if linkInfo.Mode()&os.ModeSymlink == 0 {
+			return false, fmt.Errorf("link path %q already exists and is not a symlink", linkPath)
+		}
+
+		existingTarget, err := os.Readlink(linkPath)
+		if err != nil {
+			return false, fmt.Errorf("reading existing symlink: %w", err)
+		}
+
+		resolvedExistingTarget, err := filepath.EvalSymlinks(existingTarget)
+		if err != nil {
+			return false, fmt.Errorf("resolving existing symlink target: %w", err)
+		}
+
+		resolvedNotesPath, err := filepath.EvalSymlinks(notesPath)
+		if err != nil {
+			return false, fmt.Errorf("resolving notes directory: %w", err)
+		}
+
+		if resolvedExistingTarget == resolvedNotesPath {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("link path %q points to a different directory", linkPath)
+	}
+	if !os.IsNotExist(err) {
+		return false, fmt.Errorf("checking link path: %w", err)
+	}
+
+	if err := os.Symlink(notesPath, linkPath); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func shouldAddNotesDirToGitignore() bool {
