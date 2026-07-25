@@ -5,7 +5,7 @@ build:
 	go build -o bin/soch ./cmd/soch
 
 test:
-	go test ./...
+	go test -v ./...
 
 clean:
 	rm -rf bin
