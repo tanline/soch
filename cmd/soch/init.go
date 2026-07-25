@@ -29,6 +29,9 @@ var initCmd = &cobra.Command{
 
 func createNotesDir(cmd *cobra.Command) error {
 	notesDirName := getNotesDirName()
+	if err := validateNotesDirName(notesDirName); err != nil {
+		return err
+	}
 
 	if err := createLocalNotesDir(notesDirName); err != nil {
 		return fmt.Errorf("creating notes directory: %w", err)
@@ -175,6 +178,15 @@ func getNotesDirName() string {
 	}
 
 	return name
+}
+
+func validateNotesDirName(notesDirName string) error {
+	if notesDirName == "." || notesDirName == ".." ||
+		filepath.IsAbs(notesDirName) || filepath.Base(notesDirName) != notesDirName {
+		return fmt.Errorf("notes directory name must be a single relative directory name")
+	}
+
+	return nil
 }
 
 func init() {

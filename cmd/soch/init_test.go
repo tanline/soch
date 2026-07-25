@@ -297,6 +297,37 @@ func TestCreateNotesDirLinksToMasterNotes(t *testing.T) {
 	}
 }
 
+func TestCreateNotesDirRejectsUnsafeName(t *testing.T) {
+	tests := []string{"../notes", "/tmp/notes", ".", ".."}
+
+	for _, notesDirName := range tests {
+		t.Run(notesDirName, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.Set(notesDirNameKey, notesDirName)
+			configureMasterNotesDir(t)
+
+			originalDir, err := os.Getwd()
+			if err != nil {
+				t.Fatalf("getting current directory: %v", err)
+			}
+			t.Cleanup(func() {
+				if err := os.Chdir(originalDir); err != nil {
+					t.Errorf("restoring current directory: %v", err)
+				}
+			})
+
+			if err := os.Chdir(t.TempDir()); err != nil {
+				t.Fatalf("changing to temporary directory: %v", err)
+			}
+
+			if err := createNotesDir(&cobra.Command{}); err == nil {
+				t.Fatal("createNotesDir() expected an error for an unsafe directory name")
+			}
+		})
+	}
+}
+
 func configureMasterNotesDir(t *testing.T) string {
 	t.Helper()
 
