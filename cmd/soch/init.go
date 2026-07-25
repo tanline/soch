@@ -30,12 +30,12 @@ var initCmd = &cobra.Command{
 func createNotesDir(cmd *cobra.Command) error {
 	notesDirName := getNotesDirName()
 
-	if err := os.MkdirAll(notesDirName, 0755); err != nil {
+	if err := createLocalNotesDir(notesDirName); err != nil {
 		return fmt.Errorf("creating notes directory: %w", err)
 	}
 
 	if shouldAddNotesDirToGitignore() {
-		added, err := addNotesDirToGitignore(notesDirName)
+		added, err := updateGitignore(notesDirName)
 		if err != nil {
 			return fmt.Errorf("updating .gitignore: %w", err)
 		}
@@ -57,6 +57,10 @@ func createNotesDir(cmd *cobra.Command) error {
 
 	_, err := fmt.Fprintln(cmd.OutOrStdout(), "Notes directory is ready")
 	return err
+}
+
+func createLocalNotesDir(notesDirName string) error {
+	return os.MkdirAll(notesDirName, 0755)
 }
 
 func linkNotesDir(notesDirName string) error {
@@ -92,7 +96,7 @@ func shouldAddNotesDirToGitignore() bool {
 	return viper.GetBool(addNotesDirToGitignoreKey)
 }
 
-func addNotesDirToGitignore(notesDirName string) (bool, error) {
+func updateGitignore(notesDirName string) (bool, error) {
 	const gitignoreFileName = ".gitignore"
 
 	contents, err := os.ReadFile(gitignoreFileName)
@@ -130,9 +134,9 @@ func getNotesDirName() string {
 
 	if name == "" {
 		return defaultNotesDirName
-	} else {
-		return name
 	}
+
+	return name
 }
 
 func init() {
