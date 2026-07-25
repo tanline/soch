@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	defaultNotesDirName = "notes"
-	notesDirNameKey     = "notes_dir_name"
+	defaultNotesDirName       = "notes"
+	notesDirNameKey           = "notes_dir_name"
+	addNotesDirToGitignoreKey = "add_notes_dir_to_gitignore"
 )
 
 // initCmd represents the init command
@@ -31,8 +32,62 @@ func createNotesDir(cmd *cobra.Command) error {
 		return fmt.Errorf("creating notes directory: %w", err)
 	}
 
+	if shouldAddNotesDirToGitignore() {
+		added, err := addNotesDirToGitignore(notesDirName)
+		if err != nil {
+			return fmt.Errorf("updating .gitignore: %w", err)
+		}
+
+		if added {
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Adding %s directory to .gitignore\n", notesDirName); err != nil {
+				return err
+			}
+		}
+	}
+
 	_, err := fmt.Fprintln(cmd.OutOrStdout(), "Notes directory is ready")
 	return err
+}
+
+func shouldAddNotesDirToGitignore() bool {
+	if !viper.IsSet(addNotesDirToGitignoreKey) {
+		return true
+	}
+
+	return viper.GetBool(addNotesDirToGitignoreKey)
+}
+
+func addNotesDirToGitignore(notesDirName string) (bool, error) {
+	const gitignoreFileName = ".gitignore"
+
+	contents, err := os.ReadFile(gitignoreFileName)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	gitignoreEntry := notesDirName + "/"
+	targetEntry := strings.Trim(notesDirName, "/")
+	for line := range strings.SplitSeq(strings.ReplaceAll(string(contents), "\r\n", "\n"), "\n") {
+		entry := strings.Trim(strings.TrimSpace(line), "/")
+		if entry == targetEntry {
+			return false, nil
+		}
+	}
+
+	updatedContents := string(contents)
+	if len(updatedContents) > 0 && !strings.HasSuffix(updatedContents, "\n") {
+		updatedContents += "\n"
+	}
+	updatedContents += gitignoreEntry + "\n"
+
+	if err := os.WriteFile(gitignoreFileName, []byte(updatedContents), 0644); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getNotesDirName() string {
