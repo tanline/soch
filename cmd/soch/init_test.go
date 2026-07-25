@@ -14,6 +14,7 @@ import (
 func TestCreateNotesDir(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
+	configureMasterNotesDir(t)
 
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -73,6 +74,7 @@ func TestCreateNotesDirUsesConfiguredName(t *testing.T) {
 	if err := loadConfigFrom("testdata"); err != nil {
 		t.Fatalf("loadConfigFrom() returned an error: %v", err)
 	}
+	configureMasterNotesDir(t)
 
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -89,8 +91,9 @@ func TestCreateNotesDirUsesConfiguredName(t *testing.T) {
 		t.Fatalf("changing to temporary directory: %v", err)
 	}
 
+	var output bytes.Buffer
 	cmd := &cobra.Command{}
-	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetOut(&output)
 
 	if err := createNotesDir(cmd); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
@@ -109,6 +112,7 @@ func TestCreateNotesDirUsesConfiguredName(t *testing.T) {
 func TestCreateNotesDirDoesNotCreateGitignore(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
+	configureMasterNotesDir(t)
 
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -124,8 +128,9 @@ func TestCreateNotesDirDoesNotCreateGitignore(t *testing.T) {
 		t.Fatalf("changing to temporary directory: %v", err)
 	}
 
+	var output bytes.Buffer
 	cmd := &cobra.Command{}
-	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetOut(&output)
 
 	if err := createNotesDir(cmd); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
@@ -139,6 +144,7 @@ func TestCreateNotesDirDoesNotCreateGitignore(t *testing.T) {
 func TestCreateNotesDirDoesNotDuplicateGitignoreEntry(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
+	configureMasterNotesDir(t)
 
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -179,6 +185,7 @@ func TestCreateNotesDirSkipsGitignoreWhenDisabled(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
 	viper.Set(addNotesDirToGitignoreKey, false)
+	configureMasterNotesDir(t)
 
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -218,4 +225,75 @@ func TestCreateNotesDirSkipsGitignoreWhenDisabled(t *testing.T) {
 	if strings.Contains(output.String(), "Adding notes directory to .gitignore") {
 		t.Error("output reported adding notes directory to .gitignore")
 	}
+}
+
+func TestCreateNotesDirLinksToMasterNotes(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	masterNotesDir := configureMasterNotesDir(t)
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getting current directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("restoring current directory: %v", err)
+		}
+	})
+
+	workspaceDir := t.TempDir()
+	if err := os.Chdir(workspaceDir); err != nil {
+		t.Fatalf("changing to temporary directory: %v", err)
+	}
+
+	var output bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&output)
+
+	if err := createNotesDir(cmd); err != nil {
+		t.Fatalf("createNotesDir() returned an error: %v", err)
+	}
+
+	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
+	info, err := os.Lstat(linkPath)
+	if err != nil {
+		t.Fatalf("checking notes symlink: %v", err)
+	}
+
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("path %q is not a symlink", linkPath)
+	}
+
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatalf("reading notes symlink: %v", err)
+	}
+
+	resolvedTarget, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatalf("resolving symlink target: %v", err)
+	}
+
+	wantTarget, err := filepath.EvalSymlinks(filepath.Join(workspaceDir, defaultNotesDirName))
+	if err != nil {
+		t.Fatalf("resolving expected symlink target: %v", err)
+	}
+
+	if resolvedTarget != wantTarget {
+		t.Errorf("symlink target = %q, want %q", resolvedTarget, wantTarget)
+	}
+
+	if !strings.Contains(output.String(), "Linked notes directory to master notes") {
+		t.Error("output did not report linking notes directory to master notes")
+	}
+}
+
+func configureMasterNotesDir(t *testing.T) string {
+	t.Helper()
+
+	masterNotesDir := t.TempDir()
+	viper.Set(masterNotesDirKey, masterNotesDir)
+
+	return masterNotesDir
 }
