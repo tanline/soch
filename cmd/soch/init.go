@@ -26,7 +26,7 @@ var initCmd = &cobra.Command{
 
 func createNotesDir(cmd *cobra.Command, args []string) error {
 	notesDirName := getNotesDirName()
-	if err := validateNotesDirName(notesDirName); err != nil {
+	if err := validateInitPrerequisites(notesDirName); err != nil {
 		return err
 	}
 
@@ -60,6 +60,54 @@ func createNotesDir(cmd *cobra.Command, args []string) error {
 
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), "Notes directory is ready")
 	return err
+}
+
+func validateInitPrerequisites(notesDirName string) error {
+	if err := validateNotesDirName(notesDirName); err != nil {
+		return err
+	}
+
+	workspaceDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("cannot determine the current workspace: %w", err)
+	}
+
+	masterNotesDir := strings.TrimSpace(viper.GetString(masterNotesDirKey))
+	if masterNotesDir == "" {
+		return fmt.Errorf("master notes directory is not configured; run `soch setup` first")
+	}
+
+	info, err := os.Stat(masterNotesDir)
+	if err != nil {
+		return fmt.Errorf("cannot access master notes directory %q: %w; check the path in your soch config", masterNotesDir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("master notes path %q is not a directory; update your soch config", masterNotesDir)
+	}
+
+	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
+	linkInfo, err := os.Lstat(linkPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("cannot inspect link path %q: %w", linkPath, err)
+	}
+	if linkInfo.Mode()&os.ModeSymlink == 0 {
+		return fmt.Errorf("link path %q already exists; remove or rename it before running `soch init`", linkPath)
+	}
+
+	existingTarget, err := os.Readlink(linkPath)
+	if err != nil {
+		return fmt.Errorf("cannot inspect existing link %q: %w", linkPath, err)
+	}
+
+	expectedTarget := filepath.Join(workspaceDir, notesDirName)
+	if filepath.Clean(existingTarget) != filepath.Clean(expectedTarget) {
+		return fmt.Errorf("link path %q points to %q instead of %q; remove or rename it before running `soch init`", linkPath, existingTarget, expectedTarget)
+	}
+
+	return nil
 }
 
 func createLocalNotesDir(notesDirName string) error {
@@ -180,7 +228,7 @@ func getNotesDirName() string {
 func validateNotesDirName(notesDirName string) error {
 	if notesDirName == "." || notesDirName == ".." ||
 		filepath.IsAbs(notesDirName) || filepath.Base(notesDirName) != notesDirName {
-		return fmt.Errorf("notes directory name must be a single relative directory name")
+		return fmt.Errorf("invalid notes directory name %q; use a single relative directory name such as `notes`", notesDirName)
 	}
 
 	return nil

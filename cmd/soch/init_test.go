@@ -328,6 +328,100 @@ func TestCreateNotesDirRejectsUnsafeName(t *testing.T) {
 	}
 }
 
+func TestCreateNotesDirReportsMissingMasterNotesDirBeforeMutation(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getting current directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("restoring current directory: %v", err)
+		}
+	})
+
+	workspaceDir := t.TempDir()
+	if err := os.Chdir(workspaceDir); err != nil {
+		t.Fatalf("changing to temporary directory: %v", err)
+	}
+
+	if err := os.WriteFile(".gitignore", []byte("*.log\n"), 0644); err != nil {
+		t.Fatalf("creating .gitignore: %v", err)
+	}
+
+	err = createNotesDir(&cobra.Command{}, nil)
+	if err == nil {
+		t.Fatal("createNotesDir() expected an error")
+	}
+	if !strings.Contains(err.Error(), "run `soch setup` first") {
+		t.Errorf("error = %q, want setup guidance", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(workspaceDir, defaultNotesDirName)); !os.IsNotExist(err) {
+		t.Errorf("notes directory was created after preflight failure: %v", err)
+	}
+
+	contents, err := os.ReadFile(".gitignore")
+	if err != nil {
+		t.Fatalf("reading .gitignore: %v", err)
+	}
+	if string(contents) != "*.log\n" {
+		t.Errorf(".gitignore = %q, want %q", string(contents), "*.log\n")
+	}
+}
+
+func TestCreateNotesDirReportsConflictingLinkBeforeMutation(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	masterNotesDir := configureMasterNotesDir(t)
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getting current directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("restoring current directory: %v", err)
+		}
+	})
+
+	workspaceDir := t.TempDir()
+	if err := os.Chdir(workspaceDir); err != nil {
+		t.Fatalf("changing to temporary directory: %v", err)
+	}
+
+	if err := os.WriteFile(".gitignore", []byte("*.log\n"), 0644); err != nil {
+		t.Fatalf("creating .gitignore: %v", err)
+	}
+
+	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
+	if err := os.WriteFile(linkPath, []byte("existing"), 0644); err != nil {
+		t.Fatalf("creating conflicting link path: %v", err)
+	}
+
+	err = createNotesDir(&cobra.Command{}, nil)
+	if err == nil {
+		t.Fatal("createNotesDir() expected an error")
+	}
+	if !strings.Contains(err.Error(), "remove or rename it") {
+		t.Errorf("error = %q, want remediation guidance", err)
+	}
+
+	if _, err := os.Stat(defaultNotesDirName); !os.IsNotExist(err) {
+		t.Errorf("notes directory was created after preflight failure: %v", err)
+	}
+
+	contents, err := os.ReadFile(".gitignore")
+	if err != nil {
+		t.Fatalf("reading .gitignore: %v", err)
+	}
+	if string(contents) != "*.log\n" {
+		t.Errorf(".gitignore = %q, want %q", string(contents), "*.log\n")
+	}
+}
+
 func configureMasterNotesDir(t *testing.T) string {
 	t.Helper()
 
