@@ -34,18 +34,29 @@ func TestCreateNotesDir(t *testing.T) {
 		t.Fatal("notes path exists but is not a directory")
 	}
 
+	metadataInfo, err := os.Stat(projectMetadataDirName)
+	if err != nil {
+		t.Fatalf("checking project metadata directory: %v", err)
+	}
+	if !metadataInfo.IsDir() {
+		t.Fatal("project metadata path exists but is not a directory")
+	}
+
 	contents, err := os.ReadFile(".gitignore")
 	if err != nil {
 		t.Fatalf("reading .gitignore: %v", err)
 	}
 
-	wantGitignore := "*.log\nnotes/\n"
+	wantGitignore := "*.log\nnotes/\n.soch/\n"
 	if string(contents) != wantGitignore {
 		t.Errorf(".gitignore = %q, want %q", string(contents), wantGitignore)
 	}
 
 	if !strings.Contains(output.String(), "Adding notes directory to .gitignore") {
 		t.Error("output did not report adding notes directory to .gitignore")
+	}
+	if !strings.Contains(output.String(), "Adding .soch directory to .gitignore") {
+		t.Error("output did not report adding project metadata to .gitignore")
 	}
 }
 
@@ -88,6 +99,9 @@ func TestCreateNotesDirDoesNotCreateGitignore(t *testing.T) {
 	if _, err := os.Stat(".gitignore"); !os.IsNotExist(err) {
 		t.Fatalf(".gitignore was created or could not be checked: %v", err)
 	}
+	if _, err := os.Stat(projectMetadataDirName); err != nil {
+		t.Fatalf("project metadata directory was not created: %v", err)
+	}
 }
 
 func TestCreateNotesDirDoesNotDuplicateGitignoreEntry(t *testing.T) {
@@ -110,8 +124,8 @@ func TestCreateNotesDirDoesNotDuplicateGitignoreEntry(t *testing.T) {
 		t.Fatalf("reading .gitignore: %v", err)
 	}
 
-	if string(contents) != "notes\n" {
-		t.Errorf(".gitignore = %q, want %q", string(contents), "notes\n")
+	if string(contents) != "notes\n.soch/\n" {
+		t.Errorf(".gitignore = %q, want %q", string(contents), "notes\n.soch/\n")
 	}
 }
 
@@ -136,12 +150,15 @@ func TestCreateNotesDirSkipsGitignoreWhenDisabled(t *testing.T) {
 		t.Fatalf("reading .gitignore: %v", err)
 	}
 
-	if string(contents) != "*.log\n" {
-		t.Errorf(".gitignore = %q, want %q", string(contents), "*.log\n")
+	if string(contents) != "*.log\n.soch/\n" {
+		t.Errorf(".gitignore = %q, want %q", string(contents), "*.log\n.soch/\n")
 	}
 
 	if strings.Contains(output.String(), "Adding notes directory to .gitignore") {
 		t.Error("output reported adding notes directory to .gitignore")
+	}
+	if !strings.Contains(output.String(), "Adding .soch directory to .gitignore") {
+		t.Error("output did not report adding project metadata to .gitignore")
 	}
 }
 
@@ -234,6 +251,9 @@ func TestCreateNotesDirReportsMissingMasterNotesDirBeforeMutation(t *testing.T) 
 	if _, err := os.Stat(filepath.Join(workspaceDir, defaultNotesDirName)); !os.IsNotExist(err) {
 		t.Errorf("notes directory was created after preflight failure: %v", err)
 	}
+	if _, err := os.Stat(projectMetadataDirName); !os.IsNotExist(err) {
+		t.Errorf("project metadata directory was created after preflight failure: %v", err)
+	}
 
 	contents, err := os.ReadFile(".gitignore")
 	if err != nil {
@@ -268,6 +288,9 @@ func TestCreateNotesDirReportsConflictingLinkBeforeMutation(t *testing.T) {
 
 	if _, err := os.Stat(defaultNotesDirName); !os.IsNotExist(err) {
 		t.Errorf("notes directory was created after preflight failure: %v", err)
+	}
+	if _, err := os.Stat(projectMetadataDirName); !os.IsNotExist(err) {
+		t.Errorf("project metadata directory was created after preflight failure: %v", err)
 	}
 
 	contents, err := os.ReadFile(".gitignore")

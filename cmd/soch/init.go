@@ -12,6 +12,7 @@ import (
 
 const (
 	defaultNotesDirName       = "notes"
+	projectMetadataDirName    = ".soch"
 	notesDirNameKey           = "notes_dir_name"
 	addNotesDirToGitignoreKey = "add_notes_dir_to_gitignore"
 	masterNotesDirKey         = "master_notes_dir"
@@ -33,6 +34,9 @@ func createNotesDir(cmd *cobra.Command, args []string) error {
 	if err := createLocalNotesDir(notesDirName); err != nil {
 		return fmt.Errorf("creating notes directory: %w", err)
 	}
+	if err := createProjectMetadataDir(); err != nil {
+		return fmt.Errorf("creating project metadata directory: %w", err)
+	}
 
 	if shouldAddNotesDirToGitignore() {
 		added, err := updateGitignore(notesDirName)
@@ -44,6 +48,16 @@ func createNotesDir(cmd *cobra.Command, args []string) error {
 			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Adding %s directory to .gitignore\n", notesDirName); err != nil {
 				return err
 			}
+		}
+	}
+
+	added, err := updateGitignore(projectMetadataDirName)
+	if err != nil {
+		return fmt.Errorf("updating .gitignore: %w", err)
+	}
+	if added {
+		if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Adding %s directory to .gitignore\n", projectMetadataDirName); err != nil {
+			return err
 		}
 	}
 
@@ -91,11 +105,24 @@ func validateInitPrerequisites(notesDirName string) error {
 		return err
 	}
 
+	metadataInfo, err := os.Stat(projectMetadataDirName)
+	if err == nil {
+		if !metadataInfo.IsDir() {
+			return fmt.Errorf("project metadata path %q already exists and is not a directory; remove or rename it before running `soch init`", projectMetadataDirName)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("cannot inspect project metadata path %q: %w", projectMetadataDirName, err)
+	}
+
 	return nil
 }
 
 func createLocalNotesDir(notesDirName string) error {
 	return os.MkdirAll(notesDirName, 0755)
+}
+
+func createProjectMetadataDir() error {
+	return os.MkdirAll(projectMetadataDirName, 0755)
 }
 
 func linkNotesDir(notesDirName string) (bool, error) {
@@ -196,7 +223,7 @@ func shouldAddNotesDirToGitignore() bool {
 	return viper.GetBool(addNotesDirToGitignoreKey)
 }
 
-func updateGitignore(notesDirName string) (bool, error) {
+func updateGitignore(entryName string) (bool, error) {
 	const gitignoreFileName = ".gitignore"
 
 	contents, err := os.ReadFile(gitignoreFileName)
@@ -207,8 +234,8 @@ func updateGitignore(notesDirName string) (bool, error) {
 		return false, err
 	}
 
-	gitignoreEntry := notesDirName + "/"
-	targetEntry := strings.Trim(notesDirName, "/")
+	gitignoreEntry := entryName + "/"
+	targetEntry := strings.Trim(entryName, "/")
 	for line := range strings.SplitSeq(strings.ReplaceAll(string(contents), "\r\n", "\n"), "\n") {
 		entry := strings.Trim(strings.TrimSpace(line), "/")
 		if entry == targetEntry {
