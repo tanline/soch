@@ -21,13 +21,10 @@ const (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create a notes directory in current workspace",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := createNotesDir(cmd)
-		return err
-	},
+	RunE:  createNotesDir,
 }
 
-func createNotesDir(cmd *cobra.Command) error {
+func createNotesDir(cmd *cobra.Command, args []string) error {
 	notesDirName := getNotesDirName()
 	if err := validateNotesDirName(notesDirName); err != nil {
 		return err

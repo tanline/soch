@@ -39,7 +39,7 @@ func TestCreateNotesDir(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&output)
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestCreateNotesDirUsesConfiguredName(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&output)
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
@@ -132,7 +132,7 @@ func TestCreateNotesDirDoesNotCreateGitignore(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&output)
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
@@ -167,7 +167,7 @@ func TestCreateNotesDirDoesNotDuplicateGitignoreEntry(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&bytes.Buffer{})
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
@@ -209,7 +209,7 @@ func TestCreateNotesDirSkipsGitignoreWhenDisabled(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&output)
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
@@ -251,11 +251,11 @@ func TestCreateNotesDirLinksToMasterNotes(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&output)
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("createNotesDir() returned an error: %v", err)
 	}
 
-	if err := createNotesDir(cmd); err != nil {
+	if err := createNotesDir(cmd, nil); err != nil {
 		t.Fatalf("second createNotesDir() returned an error: %v", err)
 	}
 
@@ -321,7 +321,7 @@ func TestCreateNotesDirRejectsUnsafeName(t *testing.T) {
 				t.Fatalf("changing to temporary directory: %v", err)
 			}
 
-			if err := createNotesDir(&cobra.Command{}); err == nil {
+			if err := createNotesDir(&cobra.Command{}, nil); err == nil {
 				t.Fatal("createNotesDir() expected an error for an unsafe directory name")
 			}
 		})
