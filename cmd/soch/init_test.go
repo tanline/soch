@@ -460,6 +460,21 @@ func TestValidateExistingLink(t *testing.T) {
 	if _, err := validateExistingLink(linkPath, expectedTarget); err == nil {
 		t.Fatal("validateExistingLink() expected an error for a conflicting link")
 	}
+
+	if err := os.Remove(linkPath); err != nil {
+		t.Fatalf("removing conflicting symlink: %v", err)
+	}
+	if err := os.Symlink("notes", linkPath); err != nil {
+		t.Fatalf("creating relative symlink: %v", err)
+	}
+
+	exists, err = validateExistingLink(linkPath, expectedTarget)
+	if err != nil {
+		t.Fatalf("validateExistingLink() returned an error for a relative link: %v", err)
+	}
+	if !exists {
+		t.Fatal("validateExistingLink() did not report the relative link as existing")
+	}
 }
 
 func configureMasterNotesDir(t *testing.T) string {

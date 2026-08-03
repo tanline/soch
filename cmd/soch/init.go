@@ -152,13 +152,16 @@ func validateExistingLink(linkPath, expectedTarget string) (bool, error) {
 		return false, fmt.Errorf("cannot inspect existing link %q: %w", linkPath, err)
 	}
 
+	resolvedExistingTarget := resolveLinkTarget(linkPath, existingTarget)
+	resolvedExpectedTarget := filepath.Clean(expectedTarget)
+
 	if _, err := os.Stat(expectedTarget); err == nil {
-		resolvedExistingTarget, err := filepath.EvalSymlinks(existingTarget)
+		resolvedExistingTarget, err = filepath.EvalSymlinks(resolvedExistingTarget)
 		if err != nil {
 			return false, fmt.Errorf("resolving existing symlink target: %w", err)
 		}
 
-		resolvedExpectedTarget, err := filepath.EvalSymlinks(expectedTarget)
+		resolvedExpectedTarget, err = filepath.EvalSymlinks(expectedTarget)
 		if err != nil {
 			return false, fmt.Errorf("resolving expected symlink target: %w", err)
 		}
@@ -170,11 +173,19 @@ func validateExistingLink(linkPath, expectedTarget string) (bool, error) {
 		return false, fmt.Errorf("checking expected symlink target: %w", err)
 	}
 
-	if filepath.Clean(existingTarget) != filepath.Clean(expectedTarget) {
+	if resolvedExistingTarget != resolvedExpectedTarget {
 		return false, fmt.Errorf("link path %q points to %q instead of %q; remove or rename it before running `soch init`", linkPath, existingTarget, expectedTarget)
 	}
 
 	return true, nil
+}
+
+func resolveLinkTarget(linkPath, target string) string {
+	if filepath.IsAbs(target) {
+		return filepath.Clean(target)
+	}
+
+	return filepath.Clean(filepath.Join(filepath.Dir(linkPath), target))
 }
 
 func shouldAddNotesDirToGitignore() bool {
