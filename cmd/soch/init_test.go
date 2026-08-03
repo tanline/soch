@@ -422,6 +422,46 @@ func TestCreateNotesDirReportsConflictingLinkBeforeMutation(t *testing.T) {
 	}
 }
 
+func TestValidateExistingLink(t *testing.T) {
+	temporaryDir := t.TempDir()
+	expectedTarget := filepath.Join(temporaryDir, "notes")
+	linkPath := filepath.Join(temporaryDir, "project")
+
+	exists, err := validateExistingLink(linkPath, expectedTarget)
+	if err != nil {
+		t.Fatalf("validateExistingLink() returned an error for a missing link: %v", err)
+	}
+	if exists {
+		t.Fatal("validateExistingLink() reported a missing link as existing")
+	}
+
+	if err := os.Mkdir(expectedTarget, 0755); err != nil {
+		t.Fatalf("creating expected target: %v", err)
+	}
+	if err := os.Symlink(expectedTarget, linkPath); err != nil {
+		t.Fatalf("creating expected symlink: %v", err)
+	}
+
+	exists, err = validateExistingLink(linkPath, expectedTarget)
+	if err != nil {
+		t.Fatalf("validateExistingLink() returned an error for the correct link: %v", err)
+	}
+	if !exists {
+		t.Fatal("validateExistingLink() did not report the correct link as existing")
+	}
+
+	if err := os.Remove(linkPath); err != nil {
+		t.Fatalf("removing expected symlink: %v", err)
+	}
+	if err := os.Symlink(filepath.Join(temporaryDir, "other"), linkPath); err != nil {
+		t.Fatalf("creating conflicting symlink: %v", err)
+	}
+
+	if _, err := validateExistingLink(linkPath, expectedTarget); err == nil {
+		t.Fatal("validateExistingLink() expected an error for a conflicting link")
+	}
+}
+
 func configureMasterNotesDir(t *testing.T) string {
 	t.Helper()
 

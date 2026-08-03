@@ -86,25 +86,9 @@ func validateInitPrerequisites(notesDirName string) error {
 	}
 
 	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
-	linkInfo, err := os.Lstat(linkPath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("cannot inspect link path %q: %w", linkPath, err)
-	}
-	if linkInfo.Mode()&os.ModeSymlink == 0 {
-		return fmt.Errorf("link path %q already exists; remove or rename it before running `soch init`", linkPath)
-	}
-
-	existingTarget, err := os.Readlink(linkPath)
-	if err != nil {
-		return fmt.Errorf("cannot inspect existing link %q: %w", linkPath, err)
-	}
-
 	expectedTarget := filepath.Join(workspaceDir, notesDirName)
-	if filepath.Clean(existingTarget) != filepath.Clean(expectedTarget) {
-		return fmt.Errorf("link path %q points to %q instead of %q; remove or rename it before running `soch init`", linkPath, existingTarget, expectedTarget)
+	if _, err := validateExistingLink(linkPath, expectedTarget); err != nil {
+		return err
 	}
 
 	return nil
@@ -136,39 +120,58 @@ func linkNotesDir(notesDirName string) (bool, error) {
 	linkPath := filepath.Join(masterNotesDir, filepath.Base(workspaceDir))
 	notesPath := filepath.Join(workspaceDir, notesDirName)
 
+	exists, err := validateExistingLink(linkPath, notesPath)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return false, nil
+	}
+
+	if err := os.Symlink(notesPath, linkPath); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func validateExistingLink(linkPath, expectedTarget string) (bool, error) {
 	linkInfo, err := os.Lstat(linkPath)
-	if err == nil {
-		if linkInfo.Mode()&os.ModeSymlink == 0 {
-			return false, fmt.Errorf("link path %q already exists and is not a symlink", linkPath)
-		}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("cannot inspect link path %q: %w", linkPath, err)
+	}
+	if linkInfo.Mode()&os.ModeSymlink == 0 {
+		return false, fmt.Errorf("link path %q already exists; remove or rename it before running `soch init`", linkPath)
+	}
 
-		existingTarget, err := os.Readlink(linkPath)
-		if err != nil {
-			return false, fmt.Errorf("reading existing symlink: %w", err)
-		}
+	existingTarget, err := os.Readlink(linkPath)
+	if err != nil {
+		return false, fmt.Errorf("cannot inspect existing link %q: %w", linkPath, err)
+	}
 
+	if _, err := os.Stat(expectedTarget); err == nil {
 		resolvedExistingTarget, err := filepath.EvalSymlinks(existingTarget)
 		if err != nil {
 			return false, fmt.Errorf("resolving existing symlink target: %w", err)
 		}
 
-		resolvedNotesPath, err := filepath.EvalSymlinks(notesPath)
+		resolvedExpectedTarget, err := filepath.EvalSymlinks(expectedTarget)
 		if err != nil {
-			return false, fmt.Errorf("resolving notes directory: %w", err)
+			return false, fmt.Errorf("resolving expected symlink target: %w", err)
 		}
 
-		if resolvedExistingTarget == resolvedNotesPath {
-			return false, nil
+		if resolvedExistingTarget == resolvedExpectedTarget {
+			return true, nil
 		}
-
-		return false, fmt.Errorf("link path %q points to a different directory", linkPath)
-	}
-	if !os.IsNotExist(err) {
-		return false, fmt.Errorf("checking link path: %w", err)
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("checking expected symlink target: %w", err)
 	}
 
-	if err := os.Symlink(notesPath, linkPath); err != nil {
-		return false, err
+	if filepath.Clean(existingTarget) != filepath.Clean(expectedTarget) {
+		return false, fmt.Errorf("link path %q points to %q instead of %q; remove or rename it before running `soch init`", linkPath, existingTarget, expectedTarget)
 	}
 
 	return true, nil
