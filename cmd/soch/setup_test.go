@@ -1,22 +1,18 @@
 package main
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func TestSetMasterNotesDir(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
+	resetViper(t)
 
 	masterNotesDir := t.TempDir()
-	cmd := &cobra.Command{}
+	cmd, _ := newTestCommand()
 	cmd.SetIn(strings.NewReader(masterNotesDir + "\n"))
-	cmd.SetOut(&bytes.Buffer{})
 
 	err := setMasterNotesDir(cmd)
 	if err != nil {
@@ -29,12 +25,10 @@ func TestSetMasterNotesDir(t *testing.T) {
 }
 
 func TestSetMasterNotesDirRejectsRelativePath(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
+	resetViper(t)
 
-	cmd := &cobra.Command{}
+	cmd, _ := newTestCommand()
 	cmd.SetIn(strings.NewReader("notes\n"))
-	cmd.SetOut(&bytes.Buffer{})
 
 	err := setMasterNotesDir(cmd)
 	if err == nil {

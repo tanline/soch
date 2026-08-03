@@ -8,8 +8,7 @@ import (
 )
 
 func TestLoadConfigFrom(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
+	resetViper(t)
 
 	configDir := filepath.Join("testdata")
 
