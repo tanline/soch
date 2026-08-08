@@ -37,12 +37,12 @@ func addThoughtAt(cmd *cobra.Command, args []string, thoughtFlag string, now tim
 		return err
 	}
 
-	thought, err := readThought(cmd, args, thoughtFlag)
+	thoughts, err := readThoughts(cmd, args, thoughtFlag)
 	if err != nil {
 		return err
 	}
 
-	if err := appendThought(notePath, thought, now); err != nil {
+	if err := appendThought(notePath, thoughts, now); err != nil {
 		return fmt.Errorf("adding thought to %q: %w", notePath, err)
 	}
 
@@ -50,7 +50,7 @@ func addThoughtAt(cmd *cobra.Command, args []string, thoughtFlag string, now tim
 	return err
 }
 
-func readThought(cmd *cobra.Command, args []string, thoughtFlag string) (string, error) {
+func readThoughts(cmd *cobra.Command, args []string, thoughtFlag string) (string, error) {
 	if len(args) > 0 && strings.TrimSpace(thoughtFlag) != "" {
 		return "", fmt.Errorf("provide a thought as an argument or with --%s, not both", thoughtFlagName)
 	}
@@ -128,9 +128,9 @@ func getCurrentNotePath() (string, error) {
 	return notePath, nil
 }
 
-func appendThought(notePath, thought string, now time.Time) error {
+func appendThought(notePath, newThought string, now time.Time) error {
 	var entry strings.Builder
-	lines := strings.Split(strings.ReplaceAll(thought, "\r\n", "\n"), "\n")
+	lines := strings.Split(strings.ReplaceAll(newThought, "\r\n", "\n"), "\n")
 
 	fmt.Fprintf(&entry, "- %s — %s\n", now.Format(time.RFC3339), strings.TrimSpace(lines[0]))
 	for _, line := range lines[1:] {
