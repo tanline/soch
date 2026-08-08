@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	defaultNotesDirName       = "notes"
 	projectMetadataDirName    = ".soch"
-	notesDirNameKey           = "notes_dir_name"
 	addNotesDirToGitignoreKey = "add_notes_dir_to_gitignore"
 	masterNotesDirKey         = "master_notes_dir"
 )
@@ -254,25 +252,6 @@ func updateGitignore(entryName string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func getNotesDirName() string {
-	name := strings.TrimSpace(viper.GetString(notesDirNameKey))
-
-	if name == "" {
-		return defaultNotesDirName
-	}
-
-	return name
-}
-
-func validateNotesDirName(notesDirName string) error {
-	if notesDirName == "." || notesDirName == ".." ||
-		filepath.IsAbs(notesDirName) || filepath.Base(notesDirName) != notesDirName {
-		return fmt.Errorf("invalid notes directory name %q; use a single relative directory name such as `notes`", notesDirName)
-	}
-
-	return nil
 }
 
 func init() {
