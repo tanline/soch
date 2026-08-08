@@ -15,16 +15,16 @@ const currentNotePath = ".soch/current-note"
 
 var newCmd = &cobra.Command{
 	Use:   "new <title>",
-	Short: "Create or select a note collection",
+	Short: "Create or select a note",
 	Args:  cobra.ExactArgs(1),
-	RunE:  createNewNote,
+	RunE:  runNewNote,
 }
 
-func createNewNote(cmd *cobra.Command, args []string) error {
-	return createNewNoteAt(cmd, args, time.Now())
+func runNewNote(cmd *cobra.Command, args []string) error {
+	return createNewNoteAndSetCurrentAt(cmd, args, time.Now())
 }
 
-func createNewNoteAt(cmd *cobra.Command, args []string, now time.Time) error {
+func createNewNoteAndSetCurrentAt(cmd *cobra.Command, args []string, now time.Time) error {
 	notesDirName := getNotesDirName()
 	if err := validateNoteWorkspace(notesDirName); err != nil {
 		return err
@@ -33,7 +33,7 @@ func createNewNoteAt(cmd *cobra.Command, args []string, now time.Time) error {
 		return err
 	}
 
-	notePath, created, err := createCollection(notesDirName, args[0], now)
+	notePath, created, err := createNewNote(notesDirName, args[0], now)
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,10 @@ func createNewNoteAt(cmd *cobra.Command, args []string, now time.Time) error {
 	}
 
 	if created {
-		if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Created collection: %s\n", notePath); err != nil {
+		if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Created note: %s\n", notePath); err != nil {
 			return err
 		}
-	} else if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Using existing collection: %s\n", notePath); err != nil {
+	} else if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Using existing note: %s\n", notePath); err != nil {
 		return err
 	}
 
@@ -75,7 +75,7 @@ func validateNoteWorkspace(notesDirName string) error {
 	return nil
 }
 
-func createCollection(notesDirName, title string, now time.Time) (string, bool, error) {
+func createNewNote(notesDirName, title string, now time.Time) (string, bool, error) {
 	slug := slugifyTitle(title)
 	if slug == "" {
 		return "", false, fmt.Errorf("title %q does not produce a valid filename", title)
@@ -85,17 +85,17 @@ func createCollection(notesDirName, title string, now time.Time) (string, bool, 
 	info, err := os.Stat(notePath)
 	if err == nil {
 		if info.IsDir() {
-			return "", false, fmt.Errorf("collection path %q is a directory", notePath)
+			return "", false, fmt.Errorf("note path %q is a directory", notePath)
 		}
 		return notePath, false, nil
 	}
 	if !os.IsNotExist(err) {
-		return "", false, fmt.Errorf("checking collection path %q: %w", notePath, err)
+		return "", false, fmt.Errorf("checking note path %q: %w", notePath, err)
 	}
 
 	contents := fmt.Sprintf("# %s\n\n", strings.TrimSpace(title))
 	if err := os.WriteFile(notePath, []byte(contents), 0644); err != nil {
-		return "", false, fmt.Errorf("creating collection %q: %w", notePath, err)
+		return "", false, fmt.Errorf("creating note %q: %w", notePath, err)
 	}
 
 	return notePath, true, nil
