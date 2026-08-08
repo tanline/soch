@@ -28,6 +28,8 @@ soch init
 soch new "Ideas"
 soch add "A thought"
 printf "A piped thought\n" | soch add
+soch show
+soch show 2026-08-08-ideas.md
 ```
 
-`soch new` creates or selects a dated collection. `soch add` appends a timestamped thought to the current collection.
+`soch new` creates or selects a dated note. `soch add` appends a timestamped thought to the current note. `soch show` prints the current note or a named note.
