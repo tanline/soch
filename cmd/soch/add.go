@@ -96,38 +96,6 @@ func isInteractiveInput(reader io.Reader) bool {
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
-func getCurrentNotePath() (string, error) {
-	info, err := os.Lstat(currentNotePath)
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("no current note selected; run `soch new \"<title>\"` first")
-	}
-	if err != nil {
-		return "", fmt.Errorf("checking current note path %q: %w", currentNotePath, err)
-	}
-	if info.Mode()&os.ModeSymlink == 0 {
-		return "", fmt.Errorf("current note path %q is not a symlink; run `soch new \"<title>\"` after resolving it", currentNotePath)
-	}
-
-	target, err := os.Readlink(currentNotePath)
-	if err != nil {
-		return "", fmt.Errorf("reading current note path %q: %w", currentNotePath, err)
-	}
-
-	notePath := resolveLinkTarget(currentNotePath, target)
-	noteInfo, err := os.Stat(notePath)
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("current note target %q does not exist; run `soch new \"<title>\"` to select a note", notePath)
-	}
-	if err != nil {
-		return "", fmt.Errorf("checking current note target %q: %w", notePath, err)
-	}
-	if !noteInfo.Mode().IsRegular() {
-		return "", fmt.Errorf("current note target %q is not a regular file", notePath)
-	}
-
-	return notePath, nil
-}
-
 func appendThought(notePath, newThought string, now time.Time) error {
 	var entry strings.Builder
 	lines := strings.Split(strings.ReplaceAll(newThought, "\r\n", "\n"), "\n")

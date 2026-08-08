@@ -205,14 +205,6 @@ func validateExistingLink(linkPath, expectedTarget string) (bool, error) {
 	return true, nil
 }
 
-func resolveLinkTarget(linkPath, target string) string {
-	if filepath.IsAbs(target) {
-		return filepath.Clean(target)
-	}
-
-	return filepath.Clean(filepath.Join(filepath.Dir(linkPath), target))
-}
-
 func shouldAddNotesDirToGitignore() bool {
 	if !viper.IsSet(addNotesDirToGitignoreKey) {
 		return true
