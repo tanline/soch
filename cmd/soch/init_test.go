@@ -63,8 +63,8 @@ func TestCreateNotesDir(t *testing.T) {
 func TestCreateNotesDirUsesConfiguredName(t *testing.T) {
 	resetViper(t)
 
-	if err := loadConfigFrom("testdata"); err != nil {
-		t.Fatalf("loadConfigFrom() returned an error: %v", err)
+	if err := loadConfigFile(filepath.Join("testdata", "config.yaml")); err != nil {
+		t.Fatalf("loadConfigFile() returned an error: %v", err)
 	}
 	configureMasterNotesDir(t)
 	temporaryDir := useTempWorkspace(t)

@@ -11,11 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	configFileName = "config"
-	configFileType = "yaml"
-)
-
 // setupCmd represents the setup command
 var setupCmd = &cobra.Command{
 	Use:   "setup",
@@ -36,29 +31,6 @@ var setupCmd = &cobra.Command{
 		_, err := fmt.Fprintln(cmd.OutOrStdout(), "Finished setting up soch!")
 		return err
 	},
-}
-
-func initSochConfig(cmd *cobra.Command) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	configDir := filepath.Join(homeDir, ".config", "soch")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), "The soch config folder is", configDir)
-	if err != nil {
-		return err
-	}
-
-	viper.AddConfigPath(configDir)
-	viper.SetConfigName(configFileName)
-	viper.SetConfigType(configFileType)
-
-	return nil
 }
 
 func setMasterNotesDir(cmd *cobra.Command) error {

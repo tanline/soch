@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -17,34 +14,8 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return loadConfig()
+		return loadConfig(cmd)
 	},
-}
-
-func loadConfig() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("finding user home directory: %w", err)
-	}
-
-	return loadConfigFrom(filepath.Join(homeDir, ".config", "soch"))
-}
-
-func loadConfigFrom(configDir string) error {
-
-	viper.SetConfigName(configFileName)
-	viper.SetConfigType(configFileType)
-	viper.AddConfigPath(configDir)
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); ok {
-			return nil
-		}
-
-		return fmt.Errorf("reading config: %w", err)
-	}
-
-	return nil
 }
 
 // Execute adds all child commands and runs the root command.
@@ -57,5 +28,6 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().String(configFlagName, "", "Path to config file")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
