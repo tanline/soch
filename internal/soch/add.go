@@ -113,8 +113,11 @@ func appendThought(notePath, newThought string, now time.Time) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	_, err = file.WriteString(entry.String())
-	return err
+	_, writeErr := file.WriteString(entry.String())
+	closeErr := file.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	return closeErr
 }
