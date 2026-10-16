@@ -12,11 +12,15 @@ import (
 
 const thoughtFlagName = "thought"
 
-var addCmd = &cobra.Command{
-	Use:   "add [thought]",
-	Short: "Add a thought to the current note",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  addThought,
+func newAddCommand() *cobra.Command {
+	addCmd := &cobra.Command{
+		Use:   "add [thought]",
+		Short: "Add a thought to the current note",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  addThought,
+	}
+	addCmd.Flags().String(thoughtFlagName, "", "Thought to add to the current note")
+	return addCmd
 }
 
 func addThought(cmd *cobra.Command, args []string) error {
@@ -113,9 +117,4 @@ func appendThought(notePath, newThought string, now time.Time) error {
 
 	_, err = file.WriteString(entry.String())
 	return err
-}
-
-func init() {
-	addCmd.Flags().String(thoughtFlagName, "", "Thought to add to the current note")
-	rootCmd.AddCommand(addCmd)
 }

@@ -11,11 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var newCmd = &cobra.Command{
-	Use:   "new <title>",
-	Short: "Create or select a note",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runNewNote,
+func newNoteCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "new <title>",
+		Short: "Create or select a note",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runNewNote,
+	}
 }
 
 func runNewNote(cmd *cobra.Command, args []string) error {
@@ -115,8 +117,4 @@ func slugifyTitle(title string) string {
 	}
 
 	return strings.Trim(slug.String(), "-")
-}
-
-func init() {
-	rootCmd.AddCommand(newCmd)
 }

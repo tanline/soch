@@ -11,26 +11,27 @@ import (
 	"github.com/spf13/viper"
 )
 
-// setupCmd represents the setup command
-var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Configure the global settings for soch",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := initSochConfig(cmd); err != nil {
-			return fmt.Errorf("initializing soch config: %w", err)
-		}
+func newSetupCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "setup",
+		Short: "Configure the global settings for soch",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := initSochConfig(cmd); err != nil {
+				return fmt.Errorf("initializing soch config: %w", err)
+			}
 
-		if err := setMasterNotesDir(cmd); err != nil {
-			return fmt.Errorf("setting master notes dir: %w", err)
-		}
+			if err := setMasterNotesDir(cmd); err != nil {
+				return fmt.Errorf("setting master notes dir: %w", err)
+			}
 
-		if err := viper.WriteConfig(); err != nil {
-			return fmt.Errorf("writing soch config: %w", err)
-		}
+			if err := viper.WriteConfig(); err != nil {
+				return fmt.Errorf("writing soch config: %w", err)
+			}
 
-		_, err := fmt.Fprintln(cmd.OutOrStdout(), "Finished setting up soch!")
-		return err
-	},
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), "Finished setting up soch!")
+			return err
+		},
+	}
 }
 
 func setMasterNotesDir(cmd *cobra.Command) error {
@@ -73,8 +74,4 @@ func setMasterNotesDir(cmd *cobra.Command) error {
 
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), "Your master notes directory is located at:", inputPath)
 	return err
-}
-
-func init() {
-	rootCmd.AddCommand(setupCmd)
 }

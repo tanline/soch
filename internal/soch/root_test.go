@@ -18,6 +18,30 @@ func TestDefaultConfigFilePath(t *testing.T) {
 	}
 }
 
+func TestNewRootCommandRegistersCommandsAndFlags(t *testing.T) {
+	first := newRootCommand()
+	second := newRootCommand()
+	if first == second {
+		t.Fatal("newRootCommand() returned the same command twice")
+	}
+
+	for _, root := range []*cobra.Command{first, second} {
+		if root.PersistentFlags().Lookup(configFlagName) == nil {
+			t.Error("root command is missing --config")
+		}
+
+		for _, name := range []string{"setup", "init", "new", "add", "show"} {
+			command, _, err := root.Find([]string{name})
+			if err != nil || command == nil || command == root || command.Name() != name {
+				t.Errorf("root command is missing %q: command = %v, error = %v", name, command, err)
+			}
+			if name == "add" && command != nil && command.Flags().Lookup(thoughtFlagName) == nil {
+				t.Error("add command is missing --thought")
+			}
+		}
+	}
+}
+
 func TestGetConfigFilePathUsesFlag(t *testing.T) {
 	cmd := &cobra.Command{}
 	configPath := filepath.Join(t.TempDir(), "config.yaml")

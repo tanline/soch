@@ -8,11 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var showCmd = &cobra.Command{
-	Use:   "show [filename]",
-	Short: "Show the current note or a named note",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  showNote,
+func newShowCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "show [filename]",
+		Short: "Show the current note or a named note",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  showNote,
+	}
 }
 
 func showNote(cmd *cobra.Command, args []string) error {
@@ -70,8 +72,4 @@ func validateNoteFilename(filename string) error {
 	}
 
 	return nil
-}
-
-func init() {
-	rootCmd.AddCommand(showCmd)
 }

@@ -16,11 +16,12 @@ const (
 	masterNotesDirKey         = "master_notes_dir"
 )
 
-// initCmd represents the init command
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Create a notes directory in current workspace",
-	RunE:  createNotesDir,
+func newInitCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "init",
+		Short: "Create a notes directory in current workspace",
+		RunE:  createNotesDir,
+	}
 }
 
 func createNotesDir(cmd *cobra.Command, args []string) error {
@@ -244,8 +245,4 @@ func updateGitignore(entryName string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func init() {
-	rootCmd.AddCommand(initCmd)
 }
