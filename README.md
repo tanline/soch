@@ -6,6 +6,7 @@ A lightweight CLI that scaffolds, manages, and centralizes notes across multiple
 
 ### Prerequisites
 - Go 1.26.5
+- [Golangci-lint v2](https://golangci-lint.run/docs/welcome/install/local/)
 
 ### Setup
 ```shell
@@ -13,12 +14,14 @@ git clone https://github.com/tanline/soch.git
 cd soch
 
 make test
+make lint
 ```
 
 ### Commands
 ```shell
 make build  # Build the binary in bin/soch
 make test   # Run tests
+make lint   # Run golangci-lint
 make clean  # Remove build artifacts
 ```
 

@@ -1,4 +1,4 @@
-.PHONY: build test clean
+.PHONY: build test lint clean
 
 build:
 	mkdir -p bin
@@ -6,6 +6,9 @@ build:
 
 test:
 	go test -shuffle=on -v ./...
+
+lint:
+	golangci-lint run ./...
 
 clean:
 	rm -rf bin
